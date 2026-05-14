@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* ── Light mode (default) ── */
+:root {
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --card: #ffffff;
+  --card-border: #e5e7eb;
+  --foreground: #111827;
+  --muted: #6b7280;
+  --muted-light: #9ca3af;
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --border: #e5e7eb;
+  --ring: rgba(14, 165, 233, 0.15);
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1117;
+    --surface: #0f1117;
+    --card: #1a1b23;
+    --card-border: #2a2b35;
+    --foreground: #f3f4f6;
+    --muted: #9ca3af;
+    --muted-light: #6b7280;
+    --accent: #38bdf8;
+    --accent-hover: #7dd3fc;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --border: #2a2b35;
+    --ring: rgba(56, 189, 248, 0.15);
+  }
+}
+
+/* ── Tailwind 4 theme tokens ── */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ── Base ── */
+body {
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Score ring animation ── */
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-circumference); }
+  to   { stroke-dashoffset: var(--ring-offset); }
+}
+.score-ring-animated {
+  animation: ring-draw 1.2s ease-out forwards;
+}
+
+/* ── Animated counter ── */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-count {
+  animation: count-up 0.5s ease-out;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ── Recharts overrides (use CSS vars for dark mode) ── */
+.recharts-cartesian-grid line {
+  stroke: var(--border) !important;
+}
+.recharts-text {
+  fill: var(--muted) !important;
+  font-size: 11px;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--card) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  color: var(--foreground) !important;
+}
