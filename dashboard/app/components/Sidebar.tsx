@@ -18,7 +18,7 @@ export default function Sidebar() {
   const initial = user?.name?.charAt(0)?.toUpperCase() || "?";
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col z-50 bg-card border-r border-border">
+    <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col z-50 glass-sidebar">
       {/* Logo */}
       <div className="px-7 py-7">
         <h1 className="text-base font-semibold tracking-tight text-foreground">
@@ -37,21 +37,29 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              className={`group flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-medium transition-all duration-300 press ${
                 active
-                  ? "text-accent bg-accent/5"
-                  : "text-muted hover:text-foreground hover:bg-surface"
+                  ? "text-accent bg-accent-soft shadow-sm glass-highlight"
+                  : "text-muted hover:text-foreground hover:bg-accent-soft/50"
               }`}
             >
-              <svg
-                className={`w-[18px] h-[18px] flex-shrink-0 ${active ? "text-accent" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-              </svg>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                active
+                  ? "bg-accent text-white shadow-sm"
+                  : "bg-transparent group-hover:bg-accent-soft"
+              }`}>
+                <svg
+                  className={`w-[16px] h-[16px] flex-shrink-0 transition-all duration-300 ${
+                    active ? "text-white" : "text-current"
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={active ? 2 : 1.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                </svg>
+              </div>
               <span>{item.label}</span>
             </Link>
           );
@@ -59,27 +67,29 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-5 py-5 border-t border-border">
-        {user && (
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-sm font-semibold flex-shrink-0">
-              {initial}
+      <div className="px-4 pb-5">
+        <div className="card p-4">
+          {user && (
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-2xl bg-accent/10 text-accent flex items-center justify-center text-sm font-bold flex-shrink-0">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-foreground truncate">{user.name}</p>
+                <p className="text-[11px] text-muted-light truncate">{user.email}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-              <p className="text-xs text-muted-light truncate">{user.email}</p>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 text-sm text-muted hover:text-danger transition-colors w-full"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-          </svg>
-          Sign out
-        </button>
+          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 text-[12px] text-muted hover:text-danger transition-all duration-300 w-full font-medium"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );

@@ -51,50 +51,46 @@ export default function GoalsPage() {
   const total = goals.length;
 
   return (
-    <div className="space-y-12 max-w-7xl">
+    <div className="space-y-10 max-w-7xl animate-fade-in">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Goal History</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Goal History</h2>
         <p className="text-muted text-sm mt-1">All your goals and their outcomes</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-muted-light uppercase tracking-wider font-medium">From</label>
+          <label className="text-[10px] text-muted-light uppercase tracking-wider font-semibold">From</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="text-sm px-3 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+            className="text-sm px-3 py-2 rounded-xl border border-border bg-surface text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-muted-light uppercase tracking-wider font-medium">To</label>
+          <label className="text-[10px] text-muted-light uppercase tracking-wider font-semibold">To</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="text-sm px-3 py-2 rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+            className="text-sm px-3 py-2 rounded-xl border border-border bg-surface text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring"
           />
         </div>
-        <div className="flex rounded-lg overflow-hidden border border-border">
+        <div className="segment-group">
           {["all", "completed", "incomplete"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-colors ${
-                filter === f
-                  ? "bg-accent text-white"
-                  : "bg-card text-muted hover:text-foreground"
-              }`}
+              className={`segment-btn ${filter === f ? "segment-btn-active" : ""}`}
             >
               {f}
             </button>
           ))}
         </div>
         <div className="ml-auto text-sm text-muted">
-          <span className="text-foreground font-semibold">{completed}</span>/{total} completed
-          <span className="text-accent ml-1">
+          <span className="text-foreground font-bold">{completed}</span>/{total} completed
+          <span className="text-accent font-semibold ml-1">
             ({total > 0 ? Math.round((completed / total) * 100) : 0}%)
           </span>
         </div>
@@ -111,30 +107,30 @@ export default function GoalsPage() {
             {goals.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="text-muted text-[10px] uppercase tracking-wider">
-                    <th className="text-left px-6 py-4 font-medium">Date</th>
-                    <th className="text-center px-6 py-4 font-medium">#</th>
-                    <th className="text-left px-6 py-4 font-medium">Goal</th>
-                    <th className="text-center px-6 py-4 font-medium">Status</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-6 py-4 text-[10px] text-muted-light uppercase tracking-wider font-semibold">Date</th>
+                    <th className="text-center px-6 py-4 text-[10px] text-muted-light uppercase tracking-wider font-semibold">#</th>
+                    <th className="text-left px-6 py-4 text-[10px] text-muted-light uppercase tracking-wider font-semibold">Goal</th>
+                    <th className="text-center px-6 py-4 text-[10px] text-muted-light uppercase tracking-wider font-semibold">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {goals.map((g, i) => (
                     <tr
                       key={`${g.date}-${g.goal_number}-${i}`}
-                      className={i % 2 === 1 ? "bg-surface" : ""}
+                      className="table-row border-b border-border last:border-b-0"
                     >
                       <td className="px-6 py-3.5 text-muted text-sm">{g.date}</td>
                       <td className="px-6 py-3.5 text-center text-muted-light text-sm font-mono">{g.goal_number}</td>
                       <td className="px-6 py-3.5 text-sm text-foreground">{g.goal_text}</td>
                       <td className="px-6 py-3.5 text-center">
                         {g.is_completed ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold text-success">
+                          <span className="badge badge-success">
                             <span className="status-dot bg-success" />
                             Done
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold text-muted-light">
+                          <span className="badge badge-muted">
                             <span className="status-dot bg-muted-light" />
                             Missed
                           </span>
@@ -151,22 +147,35 @@ export default function GoalsPage() {
 
           {/* Word frequency */}
           {wordFreq.length > 0 && (
-            <div className="card p-6">
-              <h3 className="text-base font-semibold mb-6 tracking-tight text-foreground">Common Goal Themes</h3>
+            <div className="card p-7">
+              <h3 className="text-sm font-semibold mb-6 text-foreground">Common Goal Themes</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={wordFreq} layout="vertical" margin={{ left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="word" type="category" width={80} tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    dataKey="word"
+                    type="category"
+                    width={80}
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
                     contentStyle={{
                       background: "var(--card)",
                       border: "1px solid var(--card-border)",
                       borderRadius: 12,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      boxShadow: "var(--shadow-md)",
                     }}
                   />
-                  <Bar dataKey="count" name="Mentions" fill="var(--accent)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" name="Mentions" fill="var(--accent)" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

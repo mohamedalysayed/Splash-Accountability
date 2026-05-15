@@ -38,8 +38,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <div className="mesh-bg" />
+      <div className="w-full max-w-md animate-fade-in">
         {/* Brand */}
         <div className="text-center mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -52,13 +53,13 @@ export default function RegisterPage() {
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="text-sm text-danger bg-danger/5 border border-danger/20 rounded-lg px-4 py-3">
+              <div className="text-sm text-danger badge-danger rounded-2xl px-4 py-3 font-medium">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
                 Name
               </label>
               <input
@@ -67,13 +68,13 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+                className="input"
                 placeholder="Your name"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email
               </label>
               <input
@@ -82,13 +83,13 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+                className="input"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Password
               </label>
               <input
@@ -97,13 +98,13 @@ export default function RegisterPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+                className="input"
                 placeholder="Choose a password"
               />
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                 Phone <span className="text-muted-light font-normal">(optional)</span>
               </label>
               <input
@@ -111,7 +112,7 @@ export default function RegisterPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent transition-colors"
+                className="input"
                 placeholder="+1 (555) 000-0000"
               />
             </div>
@@ -119,7 +120,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-accent hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -134,7 +135,7 @@ export default function RegisterPage() {
 
           <p className="text-sm text-muted text-center mt-6">
             Already have an account?{" "}
-            <Link href="/login" className="text-accent font-medium hover:text-accent-hover transition-colors">
+            <Link href="/login" className="text-accent font-semibold hover:text-accent-hover transition-colors">
               Sign in
             </Link>
           </p>

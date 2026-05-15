@@ -1,25 +1,28 @@
-# Pickup Guide — Where You Left Off (May 15, 2026)
+# Pickup Guide — Where You Left Off (May 16, 2026)
 
 ## What's Working
 
 | Feature | Status | Notes |
 |---|---|---|
 | Agent scheduler | Working | Multi-user, sends check-ins at 08:00/13:00/19:00 Europe/Zurich |
-| WhatsApp outbound | Working | Twilio sandbox, messages send to your phone |
-| WhatsApp inbound | **BROKEN** | Twilio has no webhook URL — your replies go nowhere |
-| Dashboard (Next.js) | Working | http://localhost:3000 |
+| WhatsApp outbound | Working | Twilio sandbox, messages send to user's phone |
+| WhatsApp inbound | Working | ngrok tunnel, AI-powered smart replies |
+| Smart conversations | Working | Bot detects goals, achievements, completions from freeform messages |
+| Recurring reminders | Working | Gym + social media included in every morning check-in |
+| Dashboard (Next.js) | Working | http://localhost:3000 — glassmorphic design |
 | API server (FastAPI) | Working | http://localhost:8080 |
 | Auth (JWT) | Working | Register/login/protected routes |
-| Database | SQLite | 14 days of seeded demo data |
+| Database | SQLite | Fresh start on May 16 — old demo data cleared |
 
 ## Your Credentials
 
 All secrets are in `.env` (not committed to git). Key values:
-- **Dashboard login**: splashcfd@gmail.com / splash123
+- **Dashboard login**: muhammmedaly@gmail.com (user id=2)
 - **Twilio credentials**: in `.env` as `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`
-- **WhatsApp number**: in `.env` as `USER_WHATSAPP_NUMBER`
+- **WhatsApp number**: +41766977284 (linked to dashboard account)
 - **Twilio sandbox**: +14155238886 (rejoin every 72h with "join ask-simplest")
-- **AI API key**: in `.env` as `ANTHROPIC_API_KEY`
+- **AI API key**: in `.env` as `ANTHROPIC_API_KEY` (Claude Haiku 4.5)
+- **ngrok**: auto-configured, token in `.env`
 
 ## How to Start Everything
 
@@ -28,73 +31,54 @@ cd /home/mohamed/Development/codes/accountability-agent
 ./start.sh
 ```
 
-This launches 3 processes:
+This launches 4 processes:
 1. **API server** on port 8080
 2. **Next.js dashboard** on port 3000
-3. **Agent scheduler** (foreground)
+3. **ngrok tunnel** (prints webhook URL — set this in Twilio if it changes)
+4. **Agent scheduler** (foreground)
 
-## Priority #1: Fix WhatsApp Inbound (ngrok)
-
-Your replies to the agent don't work because Twilio can't reach your localhost. Fix:
-
-### Step 1: Get ngrok
+**Important**: If you get port conflicts (`EADDRINUSE`), kill stale processes first:
 ```bash
-# Install ngrok (if not installed)
-curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok-v3-stable-linux-amd64.tgz | tar xz
-sudo mv ngrok /usr/local/bin/
-
-# Or: snap install ngrok
+pkill -9 -f uvicorn; pkill -9 -f "next dev"; pkill -9 -f ngrok; pkill -9 -f "python agent"
+sleep 2
+./start.sh
 ```
 
-### Step 2: Auth ngrok
-```bash
-# Sign up at ngrok.com, copy your auth token, then:
-ngrok config add-authtoken YOUR_TOKEN
+## How WhatsApp Works Now
 
-# Or set in .env:
-# NGROK_AUTHTOKEN=YOUR_TOKEN
-```
+The bot is smart about messages at any time of day:
+- **"Here's what I did: gym, wrote blog post"** → saves as completed achievements, calculates score
+- **"My goals today: finish report, gym, call client"** → saves as today's goals
+- **"Did I hit my targets?"** → has a natural conversation
+- **Morning/midday/evening check-ins** → standard scheduled flow with recurring reminders
 
-### Step 3: Start tunnel
-```bash
-ngrok http 8080
-```
-This gives you a URL like `https://abc123.ngrok-free.app`
-
-### Step 4: Configure Twilio
-1. Go to: https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn
-2. Click "Sandbox settings"
-3. Set "When a message comes in" to: `https://abc123.ngrok-free.app/webhook`
-4. Method: POST
-5. Save
-
-### Step 5: Test
-Send a message on WhatsApp to +14155238886. The agent should parse your goals and reply with confirmation.
+Rate limiting: outbound scheduled messages have a 5-min cooldown, but replies to your messages are instant.
 
 ## Project Structure
 
 ```
 accountability-agent/
-  agent.py          — APScheduler, multi-user check-ins
-  webhook.py        — FastAPI: Twilio webhook + REST API + auth
-  ai.py             — AI message generation + reply parsing
+  agent.py          — APScheduler, multi-user check-ins, recurring reminders
+  webhook.py        — FastAPI: Twilio webhook + REST API + auth + AI intent routing
+  ai.py             — Claude AI: message generation, parsing, freeform classification
   auth.py           — JWT + password hashing
-  config.py         — Settings from .env
+  config.py         — Settings from .env (incl. RECURRING_REMINDERS)
   db.py             — SQLAlchemy models + helpers
-  whatsapp.py       — Twilio send + console fallback
-  start.sh          — Launches everything
+  whatsapp.py       — Twilio send + console fallback + rate limiting (with reply bypass)
+  start.sh          — Launches everything (API + dashboard + ngrok + agent)
   requirements.txt  — Python deps
   .env              — Secrets (not in git)
   .env.template     — Example config
   data/             — SQLite DB + logs
-  dashboard/        — Next.js frontend
+  dashboard/        — Next.js frontend (glassmorphic design)
     app/
-      page.tsx      — Overview
-      weekly/       — Weekly view
-      goals/        — Goal history
-      trends/       — Trends
+      page.tsx      — Overview (score ring, charts, streak)
+      weekly/       — Weekly view (animated day tiles, table)
+      goals/        — Goal history (filters, themes chart)
+      trends/       — Trends (radar, position bars, area chart)
       login/        — Login page
       register/     — Register page
+      globals.css   — Glassmorphism theme (glass cards, mesh bg, animations)
       components/   — Sidebar, MetricCard, ClientLayout
     lib/
       api.ts        — API client with auth
@@ -104,15 +88,27 @@ accountability-agent/
 ## Key Architecture Decisions
 
 - **Single SQLite DB** shared by agent, webhook, and API. No migrations tool — just `init_db()` with `create_all()`. If you change the schema, delete `data/accountability.db` and restart.
-- **Multi-user**: Agent iterates all active users in DB. Anyone who texts the Twilio number gets auto-registered. Dashboard users register with email+password and link their phone.
-- **Console mode**: Set `MESSAGING_MODE=console` in `.env` to print messages to terminal instead of WhatsApp. Useful for development.
-- **Rate limiting**: 5-minute minimum between outbound messages per user.
-- **Sandbox re-join**: Twilio sandbox expires after 72 hours. Users must re-send "join ask-simplest" to stay connected.
+- **Single user account**: Mohamed Sayed (id=2, muhammmedaly@gmail.com, phone=+41766977284). Old user id=1 was deleted.
+- **Smart reply system**: Freeform messages are classified by AI into intents (set_goals, report_achievements, report_completions, general). Achievements are saved as completed goals.
+- **Console mode**: Set `MESSAGING_MODE=console` in `.env` to print messages to terminal instead of WhatsApp.
+- **Sandbox re-join**: Twilio sandbox expires after 72 hours. Must re-send "join ask-simplest" to stay connected.
+- **Laptop required**: Currently all services run locally. Deploying to cloud (Phase 6) removes this requirement.
+
+## Next Up — Voice Notes (Phase 5)
+
+The next feature to build:
+1. **Receive voice notes** — Twilio sends audio as `MediaUrl0` in webhook POST
+2. **Download audio** — fetch the media file using Twilio credentials
+3. **Transcribe** — send audio to Claude (supports audio input) or Whisper API
+4. **Process** — run transcription through the same `classify_freeform_message()` pipeline
+5. **Reply** — respond on WhatsApp as usual
+
+This means you can speak your goals/achievements and the bot processes them just like text.
 
 ## What Still Needs Work
 
 See ROADMAP.md for full list. Top priorities:
-1. **ngrok / webhook URL** — makes inbound WhatsApp work
-2. **Dashboard design polish** — being redesigned for clean light+dark theme
-3. **Deploy frontend** to Vercel + backend to Railway/Fly.io
+1. **Voice notes** (Phase 5) — speak your achievements
+2. **Habit tracking** — per-habit streaks and frequency targets
+3. **Deploy to cloud** (Phase 6) — no laptop required, 24/7 operation
 4. **Production WhatsApp** — move from sandbox to Twilio Business API

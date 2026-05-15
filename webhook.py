@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from agent import calculate_and_save_score, process_evening_reply
-from ai import parse_goals_from_reply
+from ai import classify_freeform_message, parse_goals_from_reply
 from auth import create_token, hash_password, verify_password, verify_token
 from config import settings
 from db import (
@@ -32,6 +32,7 @@ from db import (
     init_db,
     link_phone_to_user,
     log_message,
+    mark_goal_completed,
     save_check_in,
     set_goals,
     update_check_in_reply,
@@ -455,11 +456,11 @@ async def twilio_webhook(
                 )
             else:
                 reply = "I couldn't quite parse your goals. Try listing them like:\n1. Goal one\n2. Goal two\n3. Goal three"
-            send_message(phone, reply)
+            send_message(phone, reply, is_reply=True)
 
         elif pending.check_in_type == "midday":
             reply = f"Thanks for the update, {user.name}! Keep pushing through the afternoon."
-            send_message(phone, reply)
+            send_message(phone, reply, is_reply=True)
 
         elif pending.check_in_type == "evening":
             process_evening_reply(user.id, body)
@@ -471,12 +472,52 @@ async def twilio_webhook(
                     set_goals(user.id, today, goals)
                     goals_formatted = "\n".join(f"{i}. {g}" for i, g in enumerate(goals, 1))
                     reply = f"Better late than never! Your goals:\n{goals_formatted}\n\nLet's make it happen!"
-                    send_message(phone, reply)
+                    send_message(phone, reply, is_reply=True)
             elif "evening" in pending.check_in_type:
                 process_evening_reply(user.id, body)
             else:
-                send_message(phone, f"Noted, {user.name}! Keep going.")
+                send_message(phone, f"Noted, {user.name}! Keep going.", is_reply=True)
     else:
-        send_message(phone, f"Noted, {user.name}! I'll check in with you at your next scheduled time.")
+        # No pending check-in — use AI to understand the message
+        existing_goals = [g.goal_text for g in get_goals(user.id, today)]
+        result = classify_freeform_message(body, user.name, existing_goals)
+
+        if result["intent"] == "set_goals" and result.get("goals"):
+            goals = result["goals"]
+            set_goals(user.id, today, goals)
+            goals_formatted = "\n".join(f"{i}. {g}" for i, g in enumerate(goals, 1))
+            reply = result.get("reply") or (
+                f"Got it! Your {len(goals)} goal{'s' if len(goals) != 1 else ''} "
+                f"for today:\n{goals_formatted}\n\nLet's make it happen!"
+            )
+            send_message(phone, reply, is_reply=True)
+
+        elif result["intent"] == "report_completions" and result.get("completed") and existing_goals:
+            completed_flags = result["completed"]
+            for i, (goal_text, done) in enumerate(zip(existing_goals, completed_flags)):
+                if done:
+                    mark_goal_completed(user.id, today, i + 1)
+            score_info = calculate_and_save_score(user.id, today)
+            reply = result.get("reply") or (
+                f"Nice work, {user.name}! Score: *{score_info['score']:.0f}%*"
+            )
+            send_message(phone, reply, is_reply=True)
+
+        elif result["intent"] == "report_achievements" and result.get("goals"):
+            # User reported achievements with no existing goals — save as completed goals
+            goals = result["goals"]
+            set_goals(user.id, today, goals)
+            for i in range(1, len(goals) + 1):
+                mark_goal_completed(user.id, today, i)
+            score_info = calculate_and_save_score(user.id, today)
+            reply = result.get("reply") or (
+                f"Logged {len(goals)} achievement{'s' if len(goals) != 1 else ''}! "
+                f"Score: *{score_info['score']:.0f}%* "
+            )
+            send_message(phone, reply, is_reply=True)
+
+        else:
+            reply = result.get("reply") or f"Hey {user.name}! I'll check in with you at your next scheduled time."
+            send_message(phone, reply, is_reply=True)
 
     return Response(content="<Response></Response>", media_type="application/xml")

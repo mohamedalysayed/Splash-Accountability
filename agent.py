@@ -135,7 +135,7 @@ def _morning_check_in_for_user(user: User):
     yd = get_yesterday_score(user.id)
     yd_score = yd.score if yd else None
 
-    msg = generate_morning_message(user.name, streak, yd_score)
+    msg = generate_morning_message(user.name, streak, yd_score, settings.RECURRING_REMINDERS)
     if not msg:
         msg = f"Good morning {user.name}! What are your top 3 goals for today?"
 

@@ -55,6 +55,11 @@ class Settings:
     # Optional
     NGROK_AUTHTOKEN: str = os.getenv("NGROK_AUTHTOKEN", "")
 
+    # Recurring reminders (included in every morning check-in)
+    RECURRING_REMINDERS: list[str] = [
+        r for r in os.getenv("RECURRING_REMINDERS", "Gym session,Post on social media").split(",") if r.strip()
+    ]
+
     # Rate limiting
     MIN_MESSAGE_INTERVAL_SECONDS: int = 300  # 5 minutes between messages
 

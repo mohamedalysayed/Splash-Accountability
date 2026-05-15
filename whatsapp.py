@@ -23,14 +23,15 @@ if settings.MESSAGING_MODE == "whatsapp":
         logger.exception("Failed to init Twilio client — falling back to console mode")
 
 
-def send_message(to_number: str, body: str) -> str | None:
+def send_message(to_number: str, body: str, is_reply: bool = False) -> str | None:
     """Send a message. Uses Twilio WhatsApp or prints to console based on MESSAGING_MODE.
 
     Returns a message ID (SID or generated) or None if rate-limited/failed.
+    Set is_reply=True to bypass rate limiting (for replies to inbound messages).
     """
-    # Rate limit check
+    # Rate limit check (skip for replies to user messages)
     user = get_user_by_phone(to_number)
-    if user:
+    if user and not is_reply:
         last_sent = get_last_outbound_timestamp(user.id)
         if last_sent:
             # Ensure both datetimes are timezone-aware for comparison

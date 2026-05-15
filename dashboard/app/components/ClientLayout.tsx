@@ -18,6 +18,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         <div className="flex relative overflow-x-hidden">
           <Sidebar />
           <main className="flex-1 ml-[260px] p-10 overflow-auto relative min-h-screen">
+            <div className="mesh-bg" />
             {children}
           </main>
         </div>
