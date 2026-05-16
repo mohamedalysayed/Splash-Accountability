@@ -1,3 +1,43 @@
+# Pickup Guide — Where You Left Off (May 17, 2026)
+
+## ⏸️ RESUME HERE — paused mid-Sentry setup
+
+You were about to wire Sentry DSN before sleeping. Status: **NOT done yet**.
+
+**To resume:**
+1. Get a Sentry DSN: https://sentry.io → create project → pick **FastAPI** → copy the `dsn="..."` URL (format: `https://<key>@<org>.ingest.<region>.sentry.io/<id>`).
+2. Run:
+   ```bash
+   flyctl secrets set SENTRY_DSN='<paste-dsn-here>' -a splash-accountability-api
+   ```
+3. Fly auto-redeploys (~30s rolling restart). Verify:
+   ```bash
+   curl -s https://splash-accountability-api.fly.dev/health
+   ```
+4. Confirm Sentry is live by triggering a fake exception OR just wait for the first real error.
+
+**Risk:** ~30s API restart during deploy. Twilio retries up to 11× and Stripe retries for 3 days, so no inbound message/webhook gets lost. Safe to do anytime.
+
+**Sentry SDK is already wired** in `webhook.py` — it's a no-op until `SENTRY_DSN` is set, so the code is harmless if you delay this.
+
+---
+
+## What's running RIGHT NOW (untouched while you sleep)
+
+- ✅ Backend API live at https://splash-accountability-api.fly.dev (auto-healed by Fly)
+- ✅ Dashboard live at https://splash-accountability.netlify.app
+- ✅ Twilio webhook pointed at prod — any WhatsApp message to `+14155238886` ("join ask-simplest" first) will hit your bot
+- ✅ Stripe webhook live — any payment / cancellation auto-syncs
+- ✅ Founder accounts: `muhammmedaly@gmail.com` = lifetime, `splashcfd@gmail.com` = trial
+- ✅ Repo on `origin/main` @ `2c65fca`, all CI green
+- 💾 Encrypted secrets bundle: `~/Splash-Accountability-secrets-20260516-212218.zip.gpg` (password: `splash2026`)
+
+## The single most important next thing (after Sentry, optional)
+
+**Send the WhatsApp sandbox join code to one real human.** Everything technical is done. The bottleneck is now distribution, not code.
+
+---
+
 # Pickup Guide — Where You Left Off (May 16, 2026 — late evening)
 
 ## 🚀 Production is FULLY LIVE
