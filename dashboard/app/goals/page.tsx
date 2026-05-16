@@ -40,10 +40,15 @@ export default function GoalsPage() {
 
   useEffect(() => {
     setLoading(true);
-    api.goals(startDate, endDate, filter).then((g) => {
-      setGoals(g);
-      setLoading(false);
-    });
+    api.goals(startDate, endDate, filter)
+      .then((g) => {
+        setGoals(g);
+        setLoading(false);
+      })
+      .catch(() => {
+        setGoals([]);
+        setLoading(false);
+      });
   }, [startDate, endDate, filter]);
 
   const wordFreq = getWordFrequency(goals);
@@ -103,7 +108,7 @@ export default function GoalsPage() {
       ) : (
         <>
           {/* Goals table */}
-          <div className="card overflow-hidden">
+          <div className="card" style={{ overflow: 'hidden' }}>
             {goals.length > 0 ? (
               <table className="w-full">
                 <thead>
@@ -141,7 +146,9 @@ export default function GoalsPage() {
                 </tbody>
               </table>
             ) : (
-              <div className="p-16 text-center text-muted-light">No goals found in this range</div>
+              <div className="p-16 text-center text-muted-light">
+                No {filter !== "all" ? filter : ""} goals found in this date range
+              </div>
             )}
           </div>
 

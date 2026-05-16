@@ -28,8 +28,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-screen bg-background text-foreground font-sans">
-        <div className="mesh-bg" />
+      <body className="min-h-screen font-sans">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

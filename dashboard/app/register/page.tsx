@@ -29,7 +29,6 @@ export default function RegisterPage() {
         ...(phone ? { phone } : {}),
       });
       login(res.token, res.user);
-      router.push("/");
     } catch {
       setError("Registration failed. Please try again.");
     } finally {

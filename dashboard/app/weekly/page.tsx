@@ -109,24 +109,32 @@ export default function WeeklyPage() {
       {data && (
         <>
           {/* Day tiles */}
-          <div className="grid grid-cols-7 gap-4 stagger">
+          <div className="grid grid-cols-7 gap-3 stagger" style={{ minWidth: 0 }}>
             {data.days.map((day) => {
               const today = isToday(day.date);
               return (
                 <div
                   key={day.date}
-                  className={`card card-hover p-5 text-center ${
-                    today ? "ring-2 ring-accent/40 glow-pulse" : ""
+                  className={`card card-hover p-4 text-center min-w-0 ${
+                    today
+                      ? "ring-2 ring-accent/40 bg-accent-soft/30"
+                      : ""
                   }`}
                 >
-                  <div className="text-[11px] text-muted-light uppercase tracking-wider font-semibold mb-1">
-                    {day.day_short}
-                  </div>
-                  <div className="text-xs text-muted-light mb-3">
-                    {new Date(day.date).getDate()}
+                  {today ? (
+                    <div className="text-[11px] text-accent uppercase tracking-wider font-bold mb-1">
+                      Today
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-light uppercase tracking-wider font-semibold mb-1">
+                      {day.day_short}
+                    </div>
+                  )}
+                  <div className={`text-xs mb-3 ${today ? "text-accent font-medium" : "text-muted-light"}`}>
+                    {day.day_short} {new Date(day.date + "T00:00").getDate()}
                   </div>
                   <div
-                    className="text-2xl font-bold tracking-tight transition-colors"
+                    className="text-xl font-bold tracking-tight transition-colors"
                     style={{ color: scoreColor(day.score), textShadow: day.score !== null ? `0 0 20px ${scoreColor(day.score)}40` : 'none' }}
                   >
                     {day.score !== null ? `${day.score}%` : "--"}
@@ -158,7 +166,7 @@ export default function WeeklyPage() {
           </div>
 
           {/* Detail table */}
-          <div className="card overflow-hidden">
+          <div className="card" style={{ overflow: 'hidden' }}>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">

@@ -85,6 +85,65 @@ def _chat_json(user_prompt: str, system: str = "") -> str:
 
 
 # ---------------------------------------------------------------------------
+# Audio transcription
+# ---------------------------------------------------------------------------
+
+
+def transcribe_audio(audio_bytes: bytes, content_type: str = "audio/ogg") -> str:
+    """Transcribe audio using Google Speech Recognition (free, no API key).
+
+    Converts OGG/other formats to WAV via pydub+ffmpeg, then transcribes.
+    Returns the transcribed text, or empty string on failure.
+    """
+    import io
+
+    try:
+        import speech_recognition as sr
+        from pydub import AudioSegment
+    except ImportError:
+        logger.error("speech_recognition or pydub not installed")
+        return ""
+
+    try:
+        # Determine format from content type
+        media_type = content_type.split(";")[0].strip()
+        fmt_map = {
+            "audio/ogg": "ogg",
+            "audio/mpeg": "mp3",
+            "audio/mp4": "mp4",
+            "audio/wav": "wav",
+            "audio/webm": "webm",
+            "audio/amr": "amr",
+        }
+        fmt = fmt_map.get(media_type, "ogg")
+
+        # Convert to WAV for speech recognition
+        audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes), format=fmt)
+        wav_io = io.BytesIO()
+        audio_segment.export(wav_io, format="wav")
+        wav_io.seek(0)
+
+        # Transcribe with Google's free speech API
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(wav_io) as source:
+            audio_data = recognizer.record(source)
+
+        transcript = recognizer.recognize_google(audio_data)
+        logger.info("Transcribed audio (%d bytes): %s", len(audio_bytes), transcript[:100])
+        return transcript
+
+    except sr.UnknownValueError:
+        logger.warning("Speech recognition could not understand the audio")
+        return ""
+    except sr.RequestError as e:
+        logger.error("Speech recognition service error: %s", e)
+        return ""
+    except Exception:
+        logger.exception("Audio transcription failed")
+        return ""
+
+
+# ---------------------------------------------------------------------------
 # Message generation
 # ---------------------------------------------------------------------------
 
@@ -274,7 +333,9 @@ def parse_completion_from_reply(reply_text: str, original_goals: list[str]) -> l
     return [False] * len(original_goals)
 
 
-def classify_freeform_message(message: str, user_name: str, goals_today: list[str]) -> dict:
+def classify_freeform_message(
+    message: str, user_name: str, goals_today: list[str], today_iso: str = ""
+) -> dict:
     """Classify a free-form message sent outside of check-in windows.
 
     Returns dict with:
@@ -282,15 +343,18 @@ def classify_freeform_message(message: str, user_name: str, goals_today: list[st
       - goals: list of goal strings (if intent is set_goals)
       - completed: list of booleans (if intent is report_completions, matches goals_today order)
       - reply: string response to send back
+      - date: ISO date string if the user references a specific day (e.g. "on Friday")
     """
     goals_context = ""
     if goals_today:
         goals_formatted = "\n".join(f"{i}. {g}" for i, g in enumerate(goals_today, 1))
         goals_context = f"\nTheir goals for today:\n{goals_formatted}"
 
+    date_context = f"\nToday's date is {today_iso}." if today_iso else ""
+
     prompt = (
         f"You are an accountability coach talking to {user_name} on WhatsApp.\n"
-        f"They sent a message outside of the scheduled check-in times.{goals_context}\n\n"
+        f"They sent a message outside of the scheduled check-in times.{goals_context}{date_context}\n\n"
         f'Their message: "{message}"\n\n'
         "Classify the message intent and respond.\n"
         "Respond with JSON:\n"
@@ -298,12 +362,14 @@ def classify_freeform_message(message: str, user_name: str, goals_today: list[st
         '  "intent": "set_goals" | "report_achievements" | "report_completions" | "general",\n'
         '  "goals": ["goal1", "goal2", ...],  // if intent is set_goals OR report_achievements\n'
         '  "completed": [true, false, ...],  // only if intent is report_completions, must match goals order\n'
+        '  "date": "YYYY-MM-DD",  // if the user mentions a specific past day (e.g. "on Friday", "yesterday"). '
+        "Resolve relative dates using today's date. Omit or set null if they mean today.\n"
         '  "reply": "your warm, short response (under 300 chars, WhatsApp style)"\n'
         "}\n\n"
         "Intent guide:\n"
         "- set_goals: user is listing goals/plans/tasks they WANT to accomplish (future tense)\n"
-        "- report_achievements: user is sharing things they already DID/accomplished/achieved today. "
-        "Keywords: 'achieved', 'did', 'finished', 'completed', 'done', 'here is what I did'. "
+        "- report_achievements: user is sharing things they already DID/accomplished/achieved today OR on a past day. "
+        "Keywords: 'achieved', 'did', 'finished', 'completed', 'done', 'here is what I did', 'on Friday I...'. "
         "Extract each achievement as a short goal phrase in the 'goals' field. THIS IS VERY IMPORTANT.\n"
         "- report_completions: user is confirming completion of EXISTING goals they already set"
         + (" (match against their existing goals)" if goals_today else " (no existing goals today)") + "\n"
@@ -340,6 +406,11 @@ def classify_freeform_message(message: str, user_name: str, goals_today: list[st
                 result["goals"] = [g.strip() for g in goals if g.strip()]
             else:
                 result["intent"] = "general"
+
+        # Extract referenced date (e.g. "on Friday" → "2026-05-15")
+        ref_date = data.get("date")
+        if ref_date and isinstance(ref_date, str) and ref_date != today_iso:
+            result["date"] = ref_date
 
         return result
 

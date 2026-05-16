@@ -193,14 +193,18 @@ def auth_me(request: Request):
 
 @app.post("/api/auth/link-phone")
 def auth_link_phone(request: Request, body: LinkPhoneRequest):
-    """Link a WhatsApp phone number to the authenticated user."""
+    """Link a WhatsApp phone number to the authenticated user.
+
+    If a phone-only user exists (auto-created via WhatsApp), their data
+    is merged into the authenticated user's account automatically.
+    """
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    # Check if phone is already taken by another user
+    # Only reject if the phone belongs to another dashboard account (has email)
     existing = get_user_by_phone(body.phone)
-    if existing and existing.id != user.id:
+    if existing and existing.id != user.id and existing.email:
         raise HTTPException(status_code=400, detail="Phone number already linked to another account")
 
     link_phone_to_user(user.id, body.phone)
@@ -414,9 +418,12 @@ async def twilio_webhook(
     From: str = Form(""),
     Body: str = Form(""),
     MessageSid: str = Form(""),
+    NumMedia: str = Form("0"),
+    MediaUrl0: str = Form(""),
+    MediaContentType0: str = Form(""),
     x_twilio_signature: str | None = Header(None, alias="X-Twilio-Signature"),
 ):
-    """Handle inbound WhatsApp messages from Twilio."""
+    """Handle inbound WhatsApp messages from Twilio (text + voice notes)."""
 
     if x_twilio_signature:
         form_data = dict(await request.form())
@@ -427,6 +434,29 @@ async def twilio_webhook(
 
     phone = From.replace("whatsapp:", "").strip()
     body = Body.strip()
+
+    # Handle voice notes: transcribe audio and use transcript as the message body
+    if int(NumMedia) > 0 and MediaUrl0 and MediaContentType0.startswith("audio/"):
+        logger.info("Voice note received from %s (%s, %s)", phone, MediaContentType0, MediaUrl0)
+        from whatsapp import download_twilio_media
+        from ai import transcribe_audio
+
+        audio_data = download_twilio_media(MediaUrl0)
+        if audio_data:
+            transcript = transcribe_audio(audio_data, MediaContentType0)
+            if transcript:
+                # Use transcript as the message body (append to any caption text)
+                body = f"{body} {transcript}".strip() if body else transcript
+                logger.info("Voice note transcribed for %s: %s", phone, transcript[:100])
+            else:
+                # Transcription failed — tell the user
+                from whatsapp import send_message as _send
+                _send(phone, "I couldn't understand that voice note. Could you try sending it as text?", is_reply=True)
+                return Response(content="<Response></Response>", media_type="application/xml")
+        else:
+            from whatsapp import send_message as _send
+            _send(phone, "I had trouble downloading your voice note. Could you try again?", is_reply=True)
+            return Response(content="<Response></Response>", media_type="application/xml")
 
     if not phone or not body:
         return Response(content="<Response></Response>", media_type="application/xml")
@@ -480,15 +510,27 @@ async def twilio_webhook(
     else:
         # No pending check-in — use AI to understand the message
         existing_goals = [g.goal_text for g in get_goals(user.id, today)]
-        result = classify_freeform_message(body, user.name, existing_goals)
+        result = classify_freeform_message(body, user.name, existing_goals, str(today))
+
+        # Use the AI-detected date if the user referenced a past day (e.g. "on Friday")
+        target_date = today
+        if result.get("date"):
+            try:
+                target_date = date.fromisoformat(result["date"])
+                if target_date > today:
+                    target_date = today  # don't allow future dates
+                logger.info("Date reference detected: %s (today=%s)", target_date, today)
+            except ValueError:
+                target_date = today
 
         if result["intent"] == "set_goals" and result.get("goals"):
             goals = result["goals"]
-            set_goals(user.id, today, goals)
+            set_goals(user.id, target_date, goals)
             goals_formatted = "\n".join(f"{i}. {g}" for i, g in enumerate(goals, 1))
+            date_label = f"for {target_date.strftime('%A %b %d')}" if target_date != today else "for today"
             reply = result.get("reply") or (
                 f"Got it! Your {len(goals)} goal{'s' if len(goals) != 1 else ''} "
-                f"for today:\n{goals_formatted}\n\nLet's make it happen!"
+                f"{date_label}:\n{goals_formatted}\n\nLet's make it happen!"
             )
             send_message(phone, reply, is_reply=True)
 
@@ -496,22 +538,23 @@ async def twilio_webhook(
             completed_flags = result["completed"]
             for i, (goal_text, done) in enumerate(zip(existing_goals, completed_flags)):
                 if done:
-                    mark_goal_completed(user.id, today, i + 1)
-            score_info = calculate_and_save_score(user.id, today)
+                    mark_goal_completed(user.id, target_date, i + 1)
+            score_info = calculate_and_save_score(user.id, target_date)
             reply = result.get("reply") or (
                 f"Nice work, {user.name}! Score: *{score_info['score']:.0f}%*"
             )
             send_message(phone, reply, is_reply=True)
 
         elif result["intent"] == "report_achievements" and result.get("goals"):
-            # User reported achievements with no existing goals — save as completed goals
+            # User reported achievements — save as completed goals for the target date
             goals = result["goals"]
-            set_goals(user.id, today, goals)
+            set_goals(user.id, target_date, goals)
             for i in range(1, len(goals) + 1):
-                mark_goal_completed(user.id, today, i)
-            score_info = calculate_and_save_score(user.id, today)
+                mark_goal_completed(user.id, target_date, i)
+            score_info = calculate_and_save_score(user.id, target_date)
+            date_label = f"for {target_date.strftime('%A %b %d')}" if target_date != today else ""
             reply = result.get("reply") or (
-                f"Logged {len(goals)} achievement{'s' if len(goals) != 1 else ''}! "
+                f"Logged {len(goals)} achievement{'s' if len(goals) != 1 else ''} {date_label}! "
                 f"Score: *{score_info['score']:.0f}%* "
             )
             send_message(phone, reply, is_reply=True)

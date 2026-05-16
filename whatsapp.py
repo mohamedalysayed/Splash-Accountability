@@ -94,3 +94,21 @@ def validate_twilio_signature(signature: str, url: str, params: dict) -> bool:
     if _validator:
         return _validator.validate(url, params, signature)
     return True  # skip validation in console mode
+
+
+def download_twilio_media(media_url: str) -> bytes | None:
+    """Download media from a Twilio media URL using account credentials."""
+    import requests
+
+    try:
+        resp = requests.get(
+            media_url,
+            auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN),
+            timeout=30,
+        )
+        resp.raise_for_status()
+        logger.info("Downloaded media: %d bytes from %s", len(resp.content), media_url)
+        return resp.content
+    except Exception:
+        logger.exception("Failed to download media from %s", media_url)
+        return None

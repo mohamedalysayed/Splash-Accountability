@@ -33,11 +33,17 @@ fi
 # Initialize database
 python -c "from db import init_db; init_db()"
 
+# Kill stale processes on our ports before starting
+for port in ${WEBHOOK_PORT:-8080} ${DASHBOARD_PORT:-3000}; do
+    fuser -k "$port/tcp" 2>/dev/null && sleep 1 || true
+done
+
 # Cleanup function
 cleanup() {
     echo ""
     echo "Shutting down..."
     kill $WEBHOOK_PID $DASHBOARD_PID $NGROK_PID 2>/dev/null
+    wait $WEBHOOK_PID $DASHBOARD_PID $NGROK_PID 2>/dev/null
     exit 0
 }
 trap cleanup EXIT INT TERM
@@ -87,6 +93,7 @@ echo "=========================================="
 echo "  All systems running!"
 echo "  API:       http://localhost:${WEBHOOK_PORT:-8080}"
 echo "  Dashboard: http://localhost:${DASHBOARD_PORT}"
+echo "  Landing:   http://localhost:${DASHBOARD_PORT}/landing"
 echo "  Health:    http://localhost:${WEBHOOK_PORT:-8080}/health"
 echo "=========================================="
 echo ""

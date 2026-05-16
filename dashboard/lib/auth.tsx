@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -23,15 +25,18 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   login: () => {},
   logout: () => {},
+  updateUser: () => {},
 });
 
 const PUBLIC_PATHS = ["/login", "/register"];
+const NO_AUTH_REDIRECT_PATHS = ["/login", "/register", "/landing"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const checkedRef = useRef(false);
 
   const logout = useCallback(() => {
     localStorage.removeItem("auth_token");
@@ -42,42 +47,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((token: string, authUser: AuthUser) => {
     localStorage.setItem("auth_token", token);
     setUser(authUser);
+    router.push("/");
+  }, [router]);
+
+  const updateUser = useCallback((authUser: AuthUser) => {
+    setUser(authUser);
   }, []);
 
+  // Check auth once on mount
   useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
     const token = localStorage.getItem("auth_token");
     if (!token) {
       setLoading(false);
-      if (!PUBLIC_PATHS.includes(pathname)) {
-        router.push("/login");
-      }
       return;
     }
 
     authApi
       .me()
-      .then((u) => {
+      .then((resp: any) => {
+        const u = resp.user ?? resp;
         setUser(u);
         setLoading(false);
       })
       .catch(() => {
         localStorage.removeItem("auth_token");
         setLoading(false);
-        if (!PUBLIC_PATHS.includes(pathname)) {
-          router.push("/login");
-        }
       });
-  }, [pathname, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Redirect away from auth pages if already logged in
+  // Handle redirects ONLY after loading is done
   useEffect(() => {
-    if (!loading && user && PUBLIC_PATHS.includes(pathname)) {
-      router.push("/");
+    if (loading) return;
+
+    const needsAuth = !NO_AUTH_REDIRECT_PATHS.includes(pathname) && !pathname.startsWith("/landing");
+    const isAuthPage = PUBLIC_PATHS.includes(pathname);
+
+    if (!user && needsAuth) {
+      router.replace("/login");
+    } else if (user && isAuthPage) {
+      router.replace("/");
     }
   }, [loading, user, pathname, router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

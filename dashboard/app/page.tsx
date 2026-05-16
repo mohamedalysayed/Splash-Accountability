@@ -139,8 +139,8 @@ export default function OverviewPage() {
         </div>
 
         {/* Today score */}
-        <div className="card card-hover card-glow p-7 flex items-center gap-7">
-          <div className="relative flex-shrink-0">
+        <div className="card card-hover card-glow p-7 flex items-center gap-7" style={{ overflow: 'visible' }}>
+          <div className="relative flex-shrink-0" style={{ width: 110, height: 110 }}>
             <ScoreRing score={overview.today_score ?? 0} size={110} />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-xl font-bold text-foreground">
@@ -148,7 +148,7 @@ export default function OverviewPage() {
               </span>
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">Today&apos;s Score</span>
             <div className="text-sm text-muted mt-3">
               {overview.today_score !== null

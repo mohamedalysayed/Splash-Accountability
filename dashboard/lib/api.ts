@@ -5,12 +5,6 @@ function getToken(): string | null {
   return localStorage.getItem("auth_token");
 }
 
-function clearTokenAndRedirect() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("auth_token");
-  window.location.href = "/login";
-}
-
 async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -26,11 +20,6 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers,
   });
-
-  if (res.status === 401) {
-    clearTokenAndRedirect();
-    throw new Error("Unauthorized");
-  }
 
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
@@ -66,7 +55,7 @@ export const authApi = {
   me: () => fetchJSON<AuthUser>("/api/auth/me"),
 
   linkPhone: (phone: string) =>
-    fetchJSON<{ success: boolean }>("/api/auth/link-phone", {
+    fetchJSON<{ user: AuthUser }>("/api/auth/link-phone", {
       method: "POST",
       body: JSON.stringify({ phone }),
     }),

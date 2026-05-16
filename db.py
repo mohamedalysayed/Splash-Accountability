@@ -502,12 +502,45 @@ def create_user_with_email(
 
 
 def link_phone_to_user(user_id: int, phone: str):
-    """Associate a phone number with an existing user account."""
+    """Link a phone number to a user, merging data from any phone-only user."""
     with get_session() as s:
-        user = s.query(User).filter(User.id == user_id).first()
-        if user:
-            user.phone = phone
-            logger.info("Linked phone %s to user %d", phone, user_id)
+        target = s.query(User).filter(User.id == user_id).first()
+        if not target:
+            return
+
+        # Find the WhatsApp-auto-created user with this phone
+        phone_user = s.query(User).filter(
+            User.phone == phone,
+            User.id != user_id,
+        ).first()
+
+        if phone_user:
+            # Transfer all data from phone_user to target
+            s.query(Goal).filter(Goal.user_id == phone_user.id).update(
+                {"user_id": user_id}, synchronize_session="fetch"
+            )
+            s.query(CheckIn).filter(CheckIn.user_id == phone_user.id).update(
+                {"user_id": user_id}, synchronize_session="fetch"
+            )
+            s.query(DailyScore).filter(DailyScore.user_id == phone_user.id).update(
+                {"user_id": user_id}, synchronize_session="fetch"
+            )
+            s.query(MessageLog).filter(MessageLog.user_id == phone_user.id).update(
+                {"user_id": user_id}, synchronize_session="fetch"
+            )
+
+            # Deactivate the orphan phone-only user
+            phone_user.is_active = False
+            phone_user.phone = None
+            logger.info(
+                "Merged user %d (phone=%s) into user %d (%s). "
+                "Transferred goals, check-ins, scores, messages.",
+                phone_user.id, phone, user_id, target.email,
+            )
+
+        # Set the phone on the target user
+        target.phone = phone
+        logger.info("Linked phone %s to user %d", phone, user_id)
 
 
 def get_all_active_users() -> list[User]:
