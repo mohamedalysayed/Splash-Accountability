@@ -1,5 +1,6 @@
 """Anthropic Claude-powered message generation and reply parsing."""
 
+import contextvars
 import json
 import logging
 import time
@@ -7,10 +8,76 @@ import time
 import anthropic
 
 from config import settings
+from db import record_api_usage
 
 logger = logging.getLogger(__name__)
 
 _client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+# ---------------------------------------------------------------------------
+# Usage tracking
+# ---------------------------------------------------------------------------
+# Anthropic publishes no balance/credits API, so we keep our own ledger. Prices
+# are USD per 1M tokens (input, output). Update when Anthropic changes pricing.
+# Unknown models cost 0 — never silently swallow billing surprises.
+PRICES: dict[str, tuple[float, float]] = {
+    # Sonnet 4 family
+    "claude-sonnet-4-20250514": (3.0, 15.0),
+    "claude-sonnet-4-5": (3.0, 15.0),
+    "claude-sonnet-4-6": (3.0, 15.0),
+    # Opus 4 family
+    "claude-opus-4-20250514": (15.0, 75.0),
+    "claude-opus-4-6": (15.0, 75.0),
+    # Haiku 4.5
+    "claude-haiku-4-5": (1.0, 5.0),
+    "claude-haiku-4-5-20251001": (1.0, 5.0),
+}
+
+# Per-request user attribution — set by webhook/agent at the entry of a
+# user-scoped operation so any Claude call made downstream is logged with the
+# correct user_id. ContextVar is async-safe (each request gets its own value).
+_current_user_id_ctx: contextvars.ContextVar[int | None] = contextvars.ContextVar(
+    "current_user_id", default=None
+)
+
+
+def set_current_user_id(user_id: int | None) -> None:
+    """Attribute subsequent Claude calls in this context to a user."""
+    _current_user_id_ctx.set(user_id)
+
+
+def _price_for(model: str) -> tuple[float, float]:
+    """Lookup (input_per_M, output_per_M) for a model, falling back to 0."""
+    if model in PRICES:
+        return PRICES[model]
+    # Prefix match — Anthropic versions models by date suffix.
+    for known, price in PRICES.items():
+        if model.startswith(known) or known.startswith(model):
+            return price
+    logger.warning("Unknown Anthropic model for pricing: %s — cost will be 0", model)
+    return (0.0, 0.0)
+
+
+def _log_usage(model: str, resp) -> None:
+    """Extract token counts from an Anthropic response and persist a ledger row."""
+    try:
+        usage = getattr(resp, "usage", None)
+        if usage is None:
+            return
+        input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+        output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+        in_price, out_price = _price_for(model)
+        cost = (input_tokens / 1_000_000.0) * in_price + (output_tokens / 1_000_000.0) * out_price
+        record_api_usage(
+            user_id=_current_user_id_ctx.get(),
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost,
+        )
+    except Exception:
+        # Never let usage logging break a live message generation.
+        logger.exception("Failed to log Anthropic usage")
 
 SYSTEM_PROMPT = (
     "You are a friendly but firm accountability coach. "
@@ -24,15 +91,21 @@ _RETRY_DELAY = 3  # seconds
 
 
 def _call_with_retry(model, max_tokens, system, messages):
-    """Call Anthropic API with retry on rate limit errors."""
+    """Call Anthropic API with retry on rate limit errors.
+
+    Every successful call is logged to the api_usage ledger (best-effort) so
+    admins can monitor spend per-user / per-model in the dashboard.
+    """
     for attempt in range(_MAX_RETRIES):
         try:
-            return _client.messages.create(
+            resp = _client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
                 system=system,
                 messages=messages,
             )
+            _log_usage(model, resp)
+            return resp
         except anthropic.RateLimitError:
             if attempt < _MAX_RETRIES - 1:
                 wait = _RETRY_DELAY * (attempt + 1)

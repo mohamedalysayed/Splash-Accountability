@@ -1,0 +1,38 @@
+# fly.toml app configuration file generated for splash-accountability-api on 2026-05-16T11:09:12+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'splash-accountability-api'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001'
+  DATABASE_URL = 'sqlite:///data/accountability.db'
+  EVENING_TIME = '19:00'
+  MESSAGING_MODE = 'whatsapp'
+  MIDDAY_TIME = '13:00'
+  MORNING_TIME = '08:00'
+  REMINDER_DELAY_MINUTES = '60'
+  USER_TIMEZONE = 'Europe/Zurich'
+  WEBHOOK_HOST = '0.0.0.0'
+  WEBHOOK_PORT = '8080'
+
+[[mounts]]
+  source = 'splash_data'
+  destination = '/app/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512

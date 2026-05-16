@@ -11,3 +11,6 @@ node_modules/
 # Dashboard
 dashboard/.next/
 dashboard/out/
+
+# Local Netlify folder
+.netlify

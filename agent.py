@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+import ai
 from ai import (
     generate_evening_message,
     generate_midday_message,
@@ -121,6 +122,8 @@ def _parse_time(t: str) -> tuple[int, int]:
 
 def _morning_check_in_for_user(user: User):
     """Send morning check-in asking for today's goals for a specific user."""
+    # Attribute Claude calls in this job to this user (api_usage ledger).
+    ai.set_current_user_id(user.id)
     if not user.phone:
         logger.debug("User %d (%s) has no phone, skipping morning check-in", user.id, user.name)
         return
@@ -147,6 +150,7 @@ def _morning_check_in_for_user(user: User):
 
 def _midday_check_in_for_user(user: User):
     """Send midday progress check for a specific user."""
+    ai.set_current_user_id(user.id)
     if not user.phone:
         return
 
@@ -180,6 +184,7 @@ def _midday_check_in_for_user(user: User):
 
 def _evening_check_in_for_user(user: User):
     """Send evening check-in asking for completion status for a specific user."""
+    ai.set_current_user_id(user.id)
     if not user.phone:
         return
 
@@ -256,6 +261,7 @@ def process_evening_reply(user_id: int, reply_text: str):
         logger.warning("process_evening_reply: user %d not found or has no phone", user_id)
         return
 
+    ai.set_current_user_id(user.id)
     today = _today_for_user(user)
     goals = get_goals(user_id, today)
     if not goals:
@@ -285,6 +291,7 @@ def check_missed_replies():
         if not user.phone:
             continue
         try:
+            ai.set_current_user_id(user.id)
             today = _today_for_user(user)
             pending = get_all_pending_check_ins(user.id, today)
 
@@ -315,6 +322,7 @@ def weekly_summary():
         if not user.phone:
             continue
         try:
+            ai.set_current_user_id(user.id)
             scores = get_stats(user.id, days=7)
             weekly_data = [
                 {
@@ -354,6 +362,7 @@ def calculate_and_save_score(user_id: int, score_date: date):
 
 def _first_run_welcome_for_user(user: User):
     """Send a welcome message to a new user who has no history."""
+    ai.set_current_user_id(user.id)
     if not user.phone:
         return
 
@@ -400,6 +409,7 @@ def catch_up_on_restart():
         if not user.phone:
             continue
         try:
+            ai.set_current_user_id(user.id)
             today = _today_for_user(user)
             now = _now_local_for_user(user)
             h, m = now.hour, now.minute

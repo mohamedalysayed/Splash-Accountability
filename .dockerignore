@@ -1,0 +1,9 @@
+dashboard
+node_modules
+.git
+__pycache__
+*.pyc
+.env
+Dockerfile
+.dockerignore
+fly.toml

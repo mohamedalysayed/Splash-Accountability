@@ -8,8 +8,8 @@ interface MetricCardProps {
 
 export default function MetricCard({ label, value, subtitle, accent, icon }: MetricCardProps) {
   return (
-    <div className="card card-hover card-glow p-6 group">
-      <div className="flex items-center justify-between mb-4">
+    <div className="card card-hover card-glow p-5 sm:p-6 group">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <span className="text-[11px] text-muted-light font-semibold uppercase tracking-wider">{label}</span>
         {icon && (
           <span className="w-9 h-9 rounded-2xl bg-accent-soft flex items-center justify-center text-sm transition-transform duration-300 group-hover:scale-110">
@@ -18,7 +18,7 @@ export default function MetricCard({ label, value, subtitle, accent, icon }: Met
         )}
       </div>
       <div
-        className={`text-3xl font-bold tracking-tight animate-count ${
+        className={`text-3xl sm:text-4xl font-bold tracking-tighter animate-count ${
           accent ? "text-accent" : "text-foreground"
         }`}
       >

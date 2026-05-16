@@ -26,9 +26,12 @@ export default function LandingPage() {
           Set goals. Track streaks. Actually follow through.
         </p>
         <div className="lp-hero-actions">
-          <Link href="/register" className="lp-pill">Start for $0.99/mo</Link>
+          <Link href="/register" className="lp-pill">Start 15-day free trial</Link>
           <a href="#how" className="lp-text-link">How it works</a>
         </div>
+        <p className="lp-hero-price-strike">
+          <s>$9.99/mo</s> then $0.99/mo. Cancel anytime.
+        </p>
       </section>
 
       {/* iPhone */}
@@ -41,8 +44,9 @@ export default function LandingPage() {
           <div className="lp-iphone-btn lp-iphone-btn-power" />
           {/* Frame */}
           <div className="lp-iphone-bezel">
-            <div className="lp-iphone-island" />
             <div className="lp-iphone-screen">
+              {/* Dynamic Island — overlays top of screen */}
+              <div className="lp-iphone-island" />
               {/* WhatsApp chrome */}
               <div className="lp-wa-header">
                 <div className="lp-wa-avatar">S</div>
@@ -56,42 +60,42 @@ export default function LandingPage() {
                 <div className="lp-wa-date">Today</div>
 
                 <div className="lp-msg lp-msg-in">
-                  Good morning Mohamed! You&apos;re on a <strong>12-day streak</strong>. What are your top 3 goals today?
-                  <span className="lp-msg-time">08:00</span>
+                  Good morning! You&apos;re on a <strong>12-day streak</strong>. What are your top 3 goals today?
+                  <span className="lp-msg-time">07:30</span>
                 </div>
 
                 <div className="lp-msg lp-msg-out">
-                  1. Finish landing page{"\n"}2. Gym{"\n"}3. Ship voice note feature
-                  <span className="lp-msg-time">08:02</span>
+                  1. 45 min gym session{"\n"}2. Read 30 pages{"\n"}3. Meal prep for the week
+                  <span className="lp-msg-time">07:32</span>
                 </div>
 
                 <div className="lp-msg lp-msg-in">
-                  3 goals locked in. Don&apos;t forget your gym session and social media post! I&apos;ll check on you at 1pm.
-                  <span className="lp-msg-time">08:02</span>
+                  3 goals locked in. You&apos;ve hit the gym 9 days straight &mdash; don&apos;t break it! Checking in at 1 pm.
+                  <span className="lp-msg-time">07:32</span>
                 </div>
 
                 <div className="lp-msg lp-msg-out lp-msg-voice">
                   <div className="lp-voice-play">&#9654;</div>
                   <VoiceWave />
-                  <span className="lp-voice-dur">0:12</span>
-                  <span className="lp-msg-time">19:14</span>
+                  <span className="lp-voice-dur">0:08</span>
+                  <span className="lp-msg-time">18:45</span>
                 </div>
 
                 <div className="lp-msg lp-msg-in">
-                  All 3 goals done! Score: <strong>100%</strong>. 13-day streak &mdash; you&apos;re on fire, Mohamed. See you tomorrow.
-                  <span className="lp-msg-time">19:15</span>
+                  All 3 done! Score: <strong>100%</strong>. 13-day streak &mdash; you&apos;re unstoppable. See you tomorrow.
+                  <span className="lp-msg-time">18:46</span>
                 </div>
 
                 <div className="lp-wa-date">Yesterday</div>
 
                 <div className="lp-msg lp-msg-out">
-                  On Friday I spent 9 hours refactoring Splash-CFD
-                  <span className="lp-msg-time">22:40</span>
+                  Crushed my 5K this morning and finished the budget spreadsheet after work
+                  <span className="lp-msg-time">21:10</span>
                 </div>
 
                 <div className="lp-msg lp-msg-in">
-                  Logged for Friday. That&apos;s serious deep work &mdash; score updated to <strong>100%</strong>.
-                  <span className="lp-msg-time">22:40</span>
+                  Both logged. That&apos;s a strong close to the day &mdash; score: <strong>100%</strong>.
+                  <span className="lp-msg-time">21:10</span>
                 </div>
               </div>
             </div>
@@ -161,13 +165,15 @@ export default function LandingPage() {
           <h2 className="lp-heading">Pricing</h2>
           <p className="lp-body-large lp-pricing-sub">One plan. Everything included.</p>
           <div className="lp-price-card">
+            <span className="lp-launch-badge">Launch month · 90% off</span>
             <div className="lp-price-row">
+              <span className="lp-price-was">$9.99</span>
               <span className="lp-price">
                 <span className="lp-price-dollar">$</span>0.99
               </span>
               <span className="lp-price-per">/month</span>
             </div>
-            <p className="lp-price-note">Three cents a day.</p>
+            <p className="lp-price-note">Three cents a day. Locks in for life if you join now.</p>
             <ul className="lp-includes">
               {[
                 "Unlimited WhatsApp check-ins",
@@ -180,8 +186,8 @@ export default function LandingPage() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            <Link href="/register" className="lp-pill lp-pill-wide">Get started</Link>
-            <p className="lp-cancel">Cancel anytime.</p>
+            <Link href="/register" className="lp-pill lp-pill-wide">Start free trial</Link>
+            <p className="lp-cancel">15 days free, then $0.99/mo. Cancel anytime.</p>
           </div>
         </div>
       </section>
@@ -191,7 +197,7 @@ export default function LandingPage() {
         <div className="lp-container">
           <h2 className="lp-display-sm">Ready to follow through?</h2>
           <p className="lp-body-large">Your first check-in is one message away.</p>
-          <Link href="/register" className="lp-pill">Start now</Link>
+          <Link href="/register" className="lp-pill">Start 15-day free trial</Link>
         </div>
       </section>
 

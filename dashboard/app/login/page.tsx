@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -43,6 +44,27 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="card p-8">
+          {/* Google sign-in lives at the top — most users will reach for it
+              first. Falls back to nothing if NEXT_PUBLIC_GOOGLE_CLIENT_ID
+              isn't set in this environment. */}
+          <div className="mb-6">
+            <GoogleSignInButton
+              mode="signin"
+              redirectTo="/"
+              onError={setError}
+            />
+          </div>
+
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-light uppercase tracking-wider">
+                or
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="text-sm text-danger badge-danger rounded-2xl px-4 py-3 font-medium">

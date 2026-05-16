@@ -12,54 +12,51 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import Link from "next/link";
 import { api, Overview, Score } from "@/lib/api";
 import MetricCard from "./components/MetricCard";
+import IceScoreOrb from "./components/IceScoreOrb";
+import { useAuth } from "@/lib/auth";
 
-function ScoreRing({ score, size = 96 }: { score: number; size?: number }) {
-  const strokeWidth = 6;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-
-  const color =
-    score >= 80 ? "var(--success)" : score >= 50 ? "var(--warning)" : score > 0 ? "var(--danger)" : "var(--accent)";
+function TodayScoreCard({ score, done, set }: { score: number | null; done: number; set: number }) {
+  // Viewport-aware sizing — the orb stays balanced on phones without
+  // crowding the card text.
+  const [size, setSize] = useState(120);
+  useEffect(() => {
+    const update = () => setSize(window.innerWidth < 640 ? 96 : 120);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   return (
-    <svg width={size} height={size} className="transform -rotate-90 drop-shadow-lg">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="var(--border)"
-        strokeWidth={strokeWidth}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        className="score-ring-animated"
-        style={{
-          "--ring-circumference": circumference,
-          "--ring-offset": offset,
-          filter: `drop-shadow(0 0 6px ${color})`,
-        } as React.CSSProperties}
-      />
-    </svg>
+    <div className="card card-hover card-glow p-5 sm:p-7 flex items-center gap-4 sm:gap-6">
+      <IceScoreOrb score={score} size={size} />
+      <div className="min-w-0">
+        <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">
+          Today&apos;s Score
+        </span>
+        <div className="text-sm text-muted mt-3">
+          {score !== null
+            ? `${done}/${set} goals completed`
+            : "Waiting for check-in"}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function OverviewPage() {
+  const { user } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [scores30, setScores30] = useState<Score[]>([]);
   const [scores14, setScores14] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
+  const showTrialBanner =
+    !!user &&
+    !user.is_admin &&
+    (user.tier ?? "free") === "free" &&
+    !user.has_stripe_customer;
 
   useEffect(() => {
     async function load() {
@@ -92,15 +89,55 @@ export default function OverviewPage() {
   }
 
   if (!overview || overview.error) {
+    const steps = [
+      { n: 1, title: "Activate your free trial", body: "15 days free, then $0.99/mo. Cancel anytime.", href: "/profile" },
+      { n: 2, title: "Link your WhatsApp", body: "So the bot can check in with you at morning, midday & night.", href: "/settings" },
+      { n: 3, title: "Reply with 3 goals tomorrow", body: "Just text them back. Your first streak starts.", href: null as string | null },
+    ];
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-muted animate-fade-in">
-        <div className="w-24 h-24 rounded-3xl bg-accent-soft flex items-center justify-center mb-6 animate-float glow-pulse">
-          <svg className="w-12 h-12 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
+      <div className="max-w-2xl mx-auto pt-8 animate-fade-in">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          You&apos;re in. Let&apos;s set you up.
+        </h2>
+        <p className="text-muted text-sm mt-2 mb-8">Three steps. About two minutes.</p>
+        <div className="card p-7">
+          <ol className="space-y-6">
+            {steps.map((s) => {
+              const body = (
+                <div className="flex gap-4 group">
+                  <div className="w-8 h-8 rounded-full bg-accent text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                    {s.n}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors">
+                      {s.title}
+                    </p>
+                    <p className="text-xs text-muted mt-1 leading-relaxed">{s.body}</p>
+                  </div>
+                  {s.href && (
+                    <span className="text-accent text-sm self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      →
+                    </span>
+                  )}
+                </div>
+              );
+              return (
+                <li key={s.n}>
+                  {s.href ? (
+                    <Link href={s.href} className="block">
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
+                </li>
+              );
+            })}
+          </ol>
         </div>
-        <p className="text-xl font-bold text-foreground">No data yet</p>
-        <p className="text-sm mt-2 text-muted">Start the agent and complete your first day</p>
+        <p className="text-[11px] text-muted-light text-center mt-6">
+          Your dashboard fills in as soon as you start tracking.
+        </p>
       </div>
     );
   }
@@ -108,22 +145,47 @@ export default function OverviewPage() {
   const streakHot = overview.streak > 3;
 
   return (
-    <div className="space-y-10 max-w-7xl animate-fade-in">
+    <div className="space-y-8 sm:space-y-10 max-w-7xl animate-fade-in">
+      {showTrialBanner && (
+        <Link
+          href="/profile"
+          className="block card card-hover p-4 sm:p-5 border border-accent/30"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(99,102,241,0.10), rgba(168,85,247,0.08))",
+          }}
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                Start your 15-day free trial
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                Unlock Premium — $0.99/mo after. Cancel anytime.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-accent whitespace-nowrap">
+              Activate →
+            </span>
+          </div>
+        </Link>
+      )}
+
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">
-          Welcome back, {overview.user_name}
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
+          Welcome back,<br className="sm:hidden" /> {overview.user_name}
         </h2>
-        <p className="text-muted text-sm mt-1">Here&apos;s your accountability overview</p>
+        <p className="text-muted text-sm sm:text-base mt-2">Here&apos;s your accountability overview</p>
       </div>
 
       {/* Hero row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 stagger">
         {/* Streak */}
-        <div className="card card-hover card-glow p-7 flex flex-col justify-between">
+        <div className="card card-hover card-glow p-5 sm:p-7 flex flex-col justify-between">
           <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">Current Streak</span>
           <div className="mt-5">
-            <span className="text-6xl font-bold tracking-tighter text-foreground animate-count">
+            <span className="text-5xl sm:text-6xl font-bold tracking-tighter text-foreground animate-count">
               {overview.streak}
             </span>
             <span className="text-lg text-muted-light font-normal ml-2">
@@ -139,27 +201,9 @@ export default function OverviewPage() {
         </div>
 
         {/* Today score */}
-        <div className="card card-hover card-glow p-7 flex items-center gap-7" style={{ overflow: 'visible' }}>
-          <div className="relative flex-shrink-0" style={{ width: 110, height: 110 }}>
-            <ScoreRing score={overview.today_score ?? 0} size={110} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold text-foreground">
-                {overview.today_score !== null ? `${overview.today_score}%` : "--"}
-              </span>
-            </div>
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">Today&apos;s Score</span>
-            <div className="text-sm text-muted mt-3">
-              {overview.today_score !== null
-                ? `${overview.today_goals_completed}/${overview.today_goals_set} goals completed`
-                : "Waiting for check-in"}
-            </div>
-          </div>
-        </div>
-
+        <TodayScoreCard score={overview.today_score} done={overview.today_goals_completed} set={overview.today_goals_set} />
         {/* Quick stats */}
-        <div className="grid grid-rows-2 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-1 lg:grid-rows-2 gap-4 sm:gap-6">
           <MetricCard
             label="7-Day Average"
             value={`${overview.avg_7}%`}

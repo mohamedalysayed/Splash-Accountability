@@ -1,0 +1,24 @@
+[build]
+  base    = "dashboard"
+  command = "npm run build"
+  publish = "dashboard/.next"
+
+[build.environment]
+  # Pin Node 20 LTS — required by Next 16 / React 19
+  NODE_VERSION = "20"
+  # Avoid Netlify's pre-built Next runtime auto-install hiccups; OPI plugin handles it
+  NEXT_USE_NETLIFY_EDGE = "false"
+
+# Netlify's Next.js runtime plugin (handles SSR, ISR, Image Optimization)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options           = "DENY"
+    X-Content-Type-Options    = "nosniff"
+    Referrer-Policy           = "strict-origin-when-cross-origin"
+    Permissions-Policy        = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"

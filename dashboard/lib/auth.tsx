@@ -15,7 +15,8 @@ import { authApi, type AuthUser } from "./api";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (token: string, user: AuthUser) => void;
+  /** redirectTo defaults to "/" — pass "/profile" after registration so new users see the trial CTA first. */
+  login: (token: string, user: AuthUser, redirectTo?: string) => void;
   logout: () => void;
   updateUser: (user: AuthUser) => void;
 }
@@ -44,10 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [router]);
 
-  const login = useCallback((token: string, authUser: AuthUser) => {
+  const login = useCallback((token: string, authUser: AuthUser, redirectTo: string = "/") => {
     localStorage.setItem("auth_token", token);
     setUser(authUser);
-    router.push("/");
+    router.push(redirectTo);
   }, [router]);
 
   const updateUser = useCallback((authUser: AuthUser) => {
@@ -79,23 +80,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isPublicRoute =
+    NO_AUTH_REDIRECT_PATHS.includes(pathname) || pathname.startsWith("/landing");
+
   // Handle redirects ONLY after loading is done
   useEffect(() => {
     if (loading) return;
 
-    const needsAuth = !NO_AUTH_REDIRECT_PATHS.includes(pathname) && !pathname.startsWith("/landing");
+    const needsAuth = !isPublicRoute;
     const isAuthPage = PUBLIC_PATHS.includes(pathname);
 
     if (!user && needsAuth) {
-      router.replace("/login");
+      // Unauthenticated root → marketing landing. Other protected routes → login (so they can return after auth).
+      router.replace(pathname === "/" ? "/landing" : "/login");
     } else if (user && isAuthPage) {
       router.replace("/");
     }
-  }, [loading, user, pathname, router]);
+  }, [loading, user, pathname, router, isPublicRoute]);
+
+  // Suppress protected-page render until we know auth state, and during the
+  // brief window before the redirect effect above fires for anon visitors.
+  // Public routes (/landing, /login, /register) render immediately — no flash,
+  // no waiting on the /me round-trip.
+  const suppressChildren = !isPublicRoute && (loading || !user);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
-      {children}
+      {suppressChildren ? null : children}
     </AuthContext.Provider>
   );
 }

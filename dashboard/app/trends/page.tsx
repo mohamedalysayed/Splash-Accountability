@@ -112,13 +112,23 @@ export default function TrendsPage() {
         />
         <MetricCard
           label="Best Day"
-          value={data.best_day || "--"}
-          subtitle={data.best_day ? `${data.best_day_avg}% avg` : ""}
+          value={data.best_day || "—"}
+          subtitle={
+            data.best_day
+              ? data.worst_day
+                ? `${data.best_day_avg}% avg`
+                : `${data.best_day_avg}% — your only sample so far`
+              : "Log a few days to see"
+          }
         />
         <MetricCard
           label="Worst Day"
-          value={data.worst_day || "--"}
-          subtitle={data.worst_day ? `${data.worst_day_avg}% avg` : ""}
+          value={data.worst_day || "—"}
+          subtitle={
+            data.worst_day
+              ? `${data.worst_day_avg}% avg`
+              : "Need a few more days to compare"
+          }
         />
         <MetricCard label="Avg Goals/Day" value={data.avg_goals} />
       </div>

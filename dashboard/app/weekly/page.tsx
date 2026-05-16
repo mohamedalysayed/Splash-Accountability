@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, WeeklyData } from "@/lib/api";
+import IceScoreOrb from "../components/IceScoreOrb";
 
 function scoreColor(score: number | null): string {
   if (score === null) return "var(--muted-light)";
@@ -10,47 +11,35 @@ function scoreColor(score: number | null): string {
   return "var(--danger)";
 }
 
-function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
-  const strokeWidth = 4;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const color = scoreColor(score);
-
-  return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="var(--border)"
-        strokeWidth={strokeWidth}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        className="score-ring-animated"
-        style={{
-          "--ring-circumference": circumference,
-          "--ring-offset": offset,
-          filter: `drop-shadow(0 0 4px ${color})`,
-        } as React.CSSProperties}
-      />
-    </svg>
-  );
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
 }
 
 function isToday(dateStr: string): boolean {
-  const today = new Date().toISOString().split("T")[0];
-  return dateStr === today;
+  return dateStr === todayISO();
+}
+
+function isFuture(dateStr: string): boolean {
+  return dateStr > todayISO();
+}
+
+// Warm, varied copy for past days where the user didn't log anything.
+// Stable per-date so a day doesn't change its label between renders.
+const REST_COPY = [
+  "rest day",
+  "blank slate",
+  "off the grid",
+  "skipped",
+  "no entry",
+  "quiet day",
+  "took a breath",
+];
+
+function restCopyFor(dateStr: string): string {
+  // Tiny deterministic hash so the same date always shows the same phrase.
+  let h = 0;
+  for (let i = 0; i < dateStr.length; i++) h = (h * 31 + dateStr.charCodeAt(i)) | 0;
+  return REST_COPY[Math.abs(h) % REST_COPY.length];
 }
 
 export default function WeeklyPage() {
@@ -112,37 +101,60 @@ export default function WeeklyPage() {
           <div className="grid grid-cols-7 gap-3 stagger" style={{ minWidth: 0 }}>
             {data.days.map((day) => {
               const today = isToday(day.date);
+              const future = isFuture(day.date);
+              const hasScore = day.score !== null;
               return (
                 <div
                   key={day.date}
-                  className={`card card-hover p-4 text-center min-w-0 ${
-                    today
-                      ? "ring-2 ring-accent/40 bg-accent-soft/30"
-                      : ""
+                  className={`card card-hover p-3 sm:p-4 text-center min-w-0 flex flex-col items-center ${
+                    today ? "ring-2 ring-accent/40 bg-accent-soft/30" : ""
                   }`}
                 >
                   {today ? (
-                    <div className="text-[11px] text-accent uppercase tracking-wider font-bold mb-1">
+                    <div className="text-[10px] sm:text-[11px] text-accent uppercase tracking-wider font-bold mb-1">
                       Today
                     </div>
                   ) : (
-                    <div className="text-[11px] text-muted-light uppercase tracking-wider font-semibold mb-1">
+                    <div className="text-[10px] sm:text-[11px] text-muted-light uppercase tracking-wider font-semibold mb-1">
                       {day.day_short}
                     </div>
                   )}
-                  <div className={`text-xs mb-3 ${today ? "text-accent font-medium" : "text-muted-light"}`}>
-                    {day.day_short} {new Date(day.date + "T00:00").getDate()}
+                  <div className={`text-[11px] sm:text-xs mb-2 ${today ? "text-accent font-medium" : "text-muted-light"}`}>
+                    {new Date(day.date + "T00:00").getDate()}
                   </div>
-                  <div
-                    className="text-xl font-bold tracking-tight transition-colors"
-                    style={{ color: scoreColor(day.score), textShadow: day.score !== null ? `0 0 20px ${scoreColor(day.score)}40` : 'none' }}
-                  >
-                    {day.score !== null ? `${day.score}%` : "--"}
-                  </div>
-                  {day.score !== null && (
-                    <div className="text-[10px] text-muted-light mt-2 font-medium">
-                      {day.goals_completed}/{day.goals_set}
-                    </div>
+
+                  {hasScore ? (
+                    <>
+                      <IceScoreOrb score={day.score} size={52} />
+                      <div className="text-[10px] text-muted-light mt-1 font-medium">
+                        {day.goals_completed}/{day.goals_set}
+                      </div>
+                    </>
+                  ) : (
+                    // Empty state — soft circle placeholder so the grid stays
+                    // visually rhythmic, with warm copy underneath instead of
+                    // a cold "--". Different message for past / today / future.
+                    <>
+                      <div
+                        className="rounded-full flex items-center justify-center"
+                        style={{
+                          width: 52,
+                          height: 52,
+                          background:
+                            "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 70%)",
+                          border: "1px dashed var(--border)",
+                        }}
+                      >
+                        <span className="text-[18px] text-muted-light">·</span>
+                      </div>
+                      <div className="text-[10px] text-muted-light mt-2 font-medium italic leading-tight">
+                        {future
+                          ? "soon"
+                          : today
+                          ? "checking in…"
+                          : restCopyFor(day.date)}
+                      </div>
+                    </>
                   )}
                 </div>
               );
@@ -150,18 +162,24 @@ export default function WeeklyPage() {
           </div>
 
           {/* Weekly completion ring */}
-          <div className="card card-glow p-7 flex items-center gap-8">
-            <div className="relative flex-shrink-0">
-              <ScoreRing score={data.avg} size={110} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-bold text-foreground">{data.avg}%</span>
-              </div>
-            </div>
-            <div>
-              <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">Weekly Completion Rate</span>
-              <div className="text-4xl font-bold tracking-tighter text-accent mt-2 animate-count" style={{ textShadow: '0 0 30px var(--accent-glow)' }}>
+          <div className="card card-glow p-6 sm:p-7 flex items-center gap-6 sm:gap-8">
+            <IceScoreOrb score={data.avg} size={120} />
+            <div className="min-w-0">
+              <span className="text-[11px] text-muted-light uppercase tracking-wider font-semibold">
+                Weekly Completion Rate
+              </span>
+              <div className="text-3xl sm:text-4xl font-bold tracking-tighter text-foreground mt-2 animate-count">
                 {data.avg}%
               </div>
+              <p className="text-xs text-muted mt-1">
+                {data.avg >= 80
+                  ? "Locked in. Keep the streak alive."
+                  : data.avg >= 50
+                  ? "Solid week. A nudge gets you to green."
+                  : data.avg > 0
+                  ? "Reset day tomorrow — fresh slate."
+                  : "First check-in starts your week."}
+              </p>
             </div>
           </div>
 
@@ -179,37 +197,52 @@ export default function WeeklyPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.days.map((day) => (
-                  <tr
-                    key={day.date}
-                    className="table-row border-b border-border last:border-b-0"
-                  >
-                    <td className="px-6 py-4 font-medium text-sm text-foreground">{day.day_name}</td>
-                    <td className="px-6 py-4 text-center text-muted text-sm">{day.date}</td>
-                    <td className="px-6 py-4 text-center text-sm text-foreground">{day.goals_set || "--"}</td>
-                    <td className="px-6 py-4 text-center text-sm text-foreground">{day.goals_completed || "--"}</td>
-                    <td className="px-6 py-4 text-center">
-                      {day.score !== null ? (
-                        <span
-                          className="badge"
-                          style={{
-                            color: scoreColor(day.score),
-                            background: day.score >= 80
-                              ? "var(--success-soft)"
-                              : day.score >= 50
-                              ? "var(--warning-soft)"
-                              : "var(--danger-soft)",
-                          }}
-                        >
-                          {day.score}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-light">--</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm text-foreground">{day.streak || "--"}</td>
-                  </tr>
-                ))}
+                {data.days.map((day) => {
+                  const future = isFuture(day.date);
+                  const today = isToday(day.date);
+                  const blankCell = (
+                    <span className="text-muted-light italic">
+                      {future ? "soon" : today ? "—" : "—"}
+                    </span>
+                  );
+                  return (
+                    <tr
+                      key={day.date}
+                      className="table-row border-b border-border last:border-b-0"
+                    >
+                      <td className="px-6 py-4 font-medium text-sm text-foreground">{day.day_name}</td>
+                      <td className="px-6 py-4 text-center text-muted text-sm">{day.date}</td>
+                      <td className="px-6 py-4 text-center text-sm text-foreground">
+                        {day.goals_set || blankCell}
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-foreground">
+                        {day.goals_completed || blankCell}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {day.score !== null ? (
+                          <span
+                            className="badge"
+                            style={{
+                              color: scoreColor(day.score),
+                              background: day.score >= 80
+                                ? "var(--success-soft)"
+                                : day.score >= 50
+                                ? "var(--warning-soft)"
+                                : "var(--danger-soft)",
+                            }}
+                          >
+                            {day.score}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-light italic text-xs">
+                            {future ? "soon" : today ? "in progress" : restCopyFor(day.date)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-foreground">{day.streak || blankCell}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

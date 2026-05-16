@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -28,7 +29,8 @@ export default function RegisterPage() {
         password,
         ...(phone ? { phone } : {}),
       });
-      login(res.token, res.user);
+      // Brand-new users land on /profile so the trial CTA is the first thing they see.
+      login(res.token, res.user, "/profile");
     } catch {
       setError("Registration failed. Please try again.");
     } finally {
@@ -50,6 +52,26 @@ export default function RegisterPage() {
 
         {/* Card */}
         <div className="card p-8">
+          {/* One-tap signup with Google — sends Google users straight to
+              /profile so they see the trial CTA + phone linking step. */}
+          <div className="mb-6">
+            <GoogleSignInButton
+              mode="signup"
+              redirectTo="/profile"
+              onError={setError}
+            />
+          </div>
+
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-light uppercase tracking-wider">
+                or
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="text-sm text-danger badge-danger rounded-2xl px-4 py-3 font-medium">

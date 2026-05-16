@@ -187,6 +187,14 @@ body {
   border-right: 1px solid var(--sidebar-border);
 }
 
+/* ── Glass top bar (mobile only) ── */
+.glass-topbar {
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
 /* ── Score ring animation ── */
 @keyframes ring-draw {
   from { stroke-dashoffset: var(--ring-circumference); }
@@ -457,6 +465,24 @@ body {
   transform: translateY(0);
 }
 
+.btn-secondary {
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover, var(--accent-soft));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ========================================================================
    LANDING PAGE — Apple HIG inspired. Restraint is the design.
    ======================================================================== */
@@ -468,8 +494,9 @@ body {
   --lp-secondary: #6e6e73;
   --lp-tertiary: #86868b;
   --lp-separator: rgba(0,0,0,0.09);
-  --lp-blue: #0071e3;
-  --lp-blue-hover: #0077ed;
+  --lp-accent: #e8540c;
+  --lp-accent-hover: #f06418;
+  --lp-accent-glow: rgba(232, 84, 12, 0.25);
   --lp-container: 980px;
 
   background: var(--lp-bg);
@@ -491,18 +518,55 @@ body {
     --lp-secondary: #86868b;
     --lp-tertiary: #6e6e73;
     --lp-separator: rgba(255,255,255,0.08);
-    --lp-blue: #2997ff;
-    --lp-blue-hover: #40a9ff;
+    --lp-accent: #f06418;
+    --lp-accent-hover: #ff7a2e;
+    --lp-accent-glow: rgba(240, 100, 24, 0.3);
   }
 }
 
 /* ── Typography ── */
 .lp-display {
   font-size: clamp(48px, 7vw, 80px);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.05;
   color: var(--lp-fg);
+  /* Ice/3D-glass — light, frosty, with a deeper bottom for legibility */
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #e2eefb 30%,
+    #9cc1e6 65%,
+    #4f87c2 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* Tight, contained shadows — no big halo */
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 2px 3px rgba(40, 90, 160, 0.22),
+    0 5px 8px rgba(40, 90, 160, 0.12);
+  filter: drop-shadow(0 3px 5px rgba(40, 90, 160, 0.18));
+}
+@media (prefers-color-scheme: dark) {
+  .lp-display {
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #d3e6fa 30%,
+      #8cb6df 65%,
+      #4d87c2 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.35),
+      0 2px 4px rgba(20, 50, 100, 0.55),
+      0 5px 8px rgba(20, 50, 100, 0.3);
+    filter: drop-shadow(0 4px 6px rgba(40, 80, 150, 0.35));
+  }
 }
 .lp-display-sm {
   font-size: clamp(36px, 4.5vw, 56px);
@@ -589,22 +653,23 @@ body {
   font-weight: 400;
   padding: 6px 16px;
   border-radius: 980px;
-  background: linear-gradient(180deg, #1a8cff 0%, var(--lp-blue) 100%);
+  background: linear-gradient(180deg, #f5782a 0%, var(--lp-accent) 100%);
   color: #fff;
   text-decoration: none;
   transition: filter 0.25s, transform 0.2s;
   position: relative;
   overflow: hidden;
   box-shadow:
-    0 0.5px 0 0 rgba(255,255,255,0.3) inset,
-    0 1px 2px rgba(0,0,0,0.1);
+    0 0.5px 0 0 rgba(255,255,255,0.35) inset,
+    0 1px 2px rgba(0,0,0,0.1),
+    0 2px 8px var(--lp-accent-glow);
 }
 .lp-nav-cta::after {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 100%);
   border-radius: 980px 980px 0 0;
   pointer-events: none;
 }
@@ -612,7 +677,7 @@ body {
 .lp-nav-cta:active { filter: brightness(0.95); transform: scale(0.97); }
 @media (prefers-color-scheme: dark) {
   .lp-nav-cta {
-    background: linear-gradient(180deg, #40a9ff 0%, var(--lp-blue) 100%);
+    background: linear-gradient(180deg, #ff8a3a 0%, var(--lp-accent) 100%);
   }
 }
 
@@ -634,27 +699,37 @@ body {
   gap: 28px;
 }
 
-/* ── Buttons — vitreous (glossy glass) ── */
+/* ── Buttons — glass with orange glow ── */
 .lp-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 17px;
-  font-weight: 400;
-  padding: 12px 28px;
+  font-weight: 500;
+  padding: 14px 32px;
   border-radius: 980px;
-  background: linear-gradient(180deg, #1a8cff 0%, var(--lp-blue) 100%);
+  background: linear-gradient(180deg, #f5782a 0%, var(--lp-accent) 100%);
   color: #fff;
   text-decoration: none;
   cursor: pointer;
   border: none;
   position: relative;
   overflow: hidden;
-  transition: filter 0.25s, transform 0.25s;
+  transition: filter 0.25s, transform 0.25s, box-shadow 0.25s;
   box-shadow:
-    0 0.5px 0 0 rgba(255,255,255,0.36) inset,
+    0 0.5px 0 0 rgba(255,255,255,0.4) inset,
+    0 -0.5px 0 0 rgba(0,0,0,0.15) inset,
     0 1px 3px rgba(0,0,0,0.12),
-    0 4px 12px rgba(0,113,227,0.18);
+    0 4px 16px var(--lp-accent-glow),
+    0 8px 32px rgba(232,84,12,0.12);
+}
+.lp-pill::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 980px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
 }
 .lp-pill::after {
   content: '';
@@ -663,24 +738,34 @@ body {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 100%);
   border-radius: 980px 980px 0 0;
   pointer-events: none;
 }
 .lp-pill:hover {
-  filter: brightness(1.08);
-  transform: scale(1.02);
+  filter: brightness(1.1);
+  transform: scale(1.03) translateY(-1px);
+  box-shadow:
+    0 0.5px 0 0 rgba(255,255,255,0.4) inset,
+    0 -0.5px 0 0 rgba(0,0,0,0.15) inset,
+    0 2px 6px rgba(0,0,0,0.15),
+    0 8px 24px var(--lp-accent-glow),
+    0 12px 40px rgba(232,84,12,0.15);
 }
 .lp-pill:active {
   filter: brightness(0.95);
   transform: scale(0.98);
+  box-shadow:
+    0 0.5px 0 0 rgba(255,255,255,0.3) inset,
+    0 1px 2px rgba(0,0,0,0.2),
+    0 2px 8px var(--lp-accent-glow);
 }
 .lp-pill-wide { width: 100%; }
 
 /* Secondary / outline pill */
 .lp-pill-secondary {
   background: rgba(0,0,0,0.04);
-  color: var(--lp-blue);
+  color: var(--lp-accent);
   box-shadow:
     0 0 0 1px rgba(0,0,0,0.08) inset,
     0 0.5px 0 0 rgba(255,255,255,0.8) inset;
@@ -693,15 +778,17 @@ body {
 }
 @media (prefers-color-scheme: dark) {
   .lp-pill {
-    background: linear-gradient(180deg, #40a9ff 0%, var(--lp-blue) 100%);
+    background: linear-gradient(180deg, #ff8a3a 0%, var(--lp-accent) 100%);
     box-shadow:
-      0 0.5px 0 0 rgba(255,255,255,0.24) inset,
+      0 0.5px 0 0 rgba(255,255,255,0.28) inset,
+      0 -0.5px 0 0 rgba(0,0,0,0.2) inset,
       0 1px 3px rgba(0,0,0,0.3),
-      0 4px 16px rgba(41,151,255,0.2);
+      0 4px 20px var(--lp-accent-glow),
+      0 8px 40px rgba(240,100,24,0.15);
   }
   .lp-pill-secondary {
     background: rgba(255,255,255,0.06);
-    color: var(--lp-blue);
+    color: var(--lp-accent);
     box-shadow:
       0 0 0 1px rgba(255,255,255,0.1) inset,
       0 0.5px 0 0 rgba(255,255,255,0.12) inset;
@@ -713,73 +800,92 @@ body {
 .lp-text-link {
   font-size: 17px;
   font-weight: 400;
-  color: var(--lp-blue);
+  color: var(--lp-accent-hover);
   text-decoration: none;
   transition: opacity 0.3s;
 }
 .lp-text-link:hover { text-decoration: underline; }
 
-/* ── iPhone 15 Pro mockup ── */
+/* ── iPhone 17 Pro Max mockup — Desert Orange ── */
 .lp-device-section {
-  padding: 40px 24px 80px;
+  padding: 40px 24px 100px;
   display: flex;
   justify-content: center;
+  perspective: 1200px;
 }
 .lp-iphone {
-  width: 290px;
+  width: 310px;
   position: relative;
+  animation: lp-float 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+  25% { transform: translateY(-10px) rotateX(0.5deg) rotateY(-0.5deg); }
+  50% { transform: translateY(-16px) rotateX(0deg) rotateY(0.5deg); }
+  75% { transform: translateY(-8px) rotateX(-0.5deg) rotateY(0deg); }
 }
 .lp-iphone-bezel {
-  background: #1d1d1f;
-  border-radius: 44px;
-  padding: 10px;
+  background: linear-gradient(160deg, #d4895a 0%, #c47a4a 30%, #b26b3c 70%, #a35e32 100%);
+  border-radius: 48px;
+  padding: 8px;
   position: relative;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.08) inset,
-    0 24px 80px rgba(0,0,0,0.18),
-    0 2px 8px rgba(0,0,0,0.12);
+    0 0 0 1px rgba(255,255,255,0.15) inset,
+    0 -1px 0 0 rgba(0,0,0,0.2) inset,
+    0 30px 60px -12px rgba(180,90,30,0.25),
+    0 18px 36px -8px rgba(0,0,0,0.2),
+    0 4px 12px rgba(0,0,0,0.15),
+    0 60px 100px -20px rgba(180,90,30,0.15);
 }
 @media (prefers-color-scheme: dark) {
   .lp-iphone-bezel {
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.06) inset,
-      0 24px 80px rgba(0,0,0,0.6),
-      0 2px 8px rgba(0,0,0,0.4);
+      0 0 0 1px rgba(255,255,255,0.12) inset,
+      0 -1px 0 0 rgba(0,0,0,0.3) inset,
+      0 30px 60px -12px rgba(180,90,30,0.35),
+      0 18px 36px -8px rgba(0,0,0,0.5),
+      0 4px 12px rgba(0,0,0,0.3),
+      0 60px 100px -20px rgba(180,90,30,0.2);
   }
 }
-/* Side buttons */
+/* Side buttons — matching orange titanium */
 .lp-iphone-btn {
   position: absolute;
-  background: #2c2c2e;
+  background: linear-gradient(180deg, #c47a4a 0%, #a35e32 100%);
   border-radius: 2px;
+  box-shadow: -1px 0 2px rgba(0,0,0,0.15);
 }
-.lp-iphone-btn-silent { left: -2.5px; top: 100px; width: 3px; height: 20px; }
-.lp-iphone-btn-volup  { left: -2.5px; top: 140px; width: 3px; height: 36px; }
-.lp-iphone-btn-voldown { left: -2.5px; top: 184px; width: 3px; height: 36px; }
-.lp-iphone-btn-power  { right: -2.5px; top: 150px; width: 3px; height: 52px; }
+.lp-iphone-btn-silent { left: -2.5px; top: 110px; width: 3px; height: 20px; }
+.lp-iphone-btn-volup  { left: -2.5px; top: 150px; width: 3px; height: 38px; }
+.lp-iphone-btn-voldown { left: -2.5px; top: 196px; width: 3px; height: 38px; }
+.lp-iphone-btn-power  { right: -2.5px; top: 160px; width: 3px; height: 56px; box-shadow: 1px 0 2px rgba(0,0,0,0.15); }
 
 .lp-iphone-island {
-  width: 100px;
-  height: 28px;
+  width: 120px;
+  height: 32px;
   background: #000;
   border-radius: 20px;
-  margin: 4px auto 6px;
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
 }
 .lp-iphone-screen {
   background: #0b141a;
-  border-radius: 34px;
+  border-radius: 40px;
   overflow: hidden;
-  min-height: 520px;
+  height: 620px;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-/* WhatsApp header */
+/* WhatsApp header — extra top padding for island */
 .lp-wa-header {
   background: #1f2c34;
-  padding: 10px 14px;
+  padding: 48px 14px 10px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -933,7 +1039,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--lp-blue);
+  background: var(--lp-accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1006,6 +1112,53 @@ body {
   color: var(--lp-tertiary);
   margin-bottom: 32px;
 }
+/* ── Launch pricing — anchor + slash ── */
+.lp-price-was {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--lp-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  margin-right: 12px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+.lp-launch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 980px;
+  background: linear-gradient(180deg, #f5782a 0%, var(--lp-accent) 100%);
+  color: #fff;
+  margin-bottom: 20px;
+  box-shadow:
+    0 0.5px 0 0 rgba(255,255,255,0.35) inset,
+    0 2px 8px var(--lp-accent-glow);
+}
+.lp-launch-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px #fff;
+  animation: lp-pulse 1.8s ease-in-out infinite;
+}
+@keyframes lp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(0.7); }
+}
+.lp-hero-price-strike {
+  font-size: 14px;
+  color: var(--lp-tertiary);
+  margin-top: 12px;
+}
+.lp-hero-price-strike s { opacity: 0.65; margin-right: 6px; }
 .lp-includes {
   list-style: none;
   padding: 0;

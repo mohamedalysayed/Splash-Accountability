@@ -42,3 +42,47 @@ def verify_token(token: str) -> dict | None:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         return None
+
+
+def verify_google_id_token(id_token_str: str) -> dict | None:
+    """Verify a Google-issued ID token and return the payload.
+
+    Returns a dict with at least {sub, email, email_verified, name, picture}
+    if valid, else None. Verifies signature, expiry, issuer, and that the
+    audience matches our configured client_id.
+
+    Requires settings.GOOGLE_OAUTH_CLIENT_ID to be set.
+    """
+    import logging
+    log = logging.getLogger(__name__)
+
+    if not settings.GOOGLE_OAUTH_CLIENT_ID:
+        log.warning("verify_google_id_token called but GOOGLE_OAUTH_CLIENT_ID is unset")
+        return None
+
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+    except ImportError:
+        log.exception("google-auth not installed — `pip install google-auth`")
+        return None
+
+    try:
+        # This verifies signature (against Google's published JWKs),
+        # expiry, issuer ('accounts.google.com'/'https://accounts.google.com'),
+        # and audience (must equal our client_id).
+        info = google_id_token.verify_oauth2_token(
+            id_token_str,
+            google_requests.Request(),
+            settings.GOOGLE_OAUTH_CLIENT_ID,
+        )
+    except ValueError as e:
+        log.warning("Google ID token rejected: %s", e)
+        return None
+
+    # Defense-in-depth: also require a verified email.
+    if not info.get("email") or not info.get("email_verified"):
+        log.warning("Google ID token has no verified email: %s", info.get("email"))
+        return None
+
+    return info
